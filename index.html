@@ -24,6 +24,18 @@
   <div id="status">Loading Dewdrop Dynasty…</div>
   <script>
     const status = document.getElementById("status");
+    function report(message) {
+      console.error(message);
+      status.textContent += "\\n" + String(message);
+    }
+    window.addEventListener("error", function(event) {
+      report("Browser error: " + (event.message || "unknown") +
+        (event.filename ? " (" + event.filename + ":" + event.lineno + ")" : ""));
+    });
+    window.addEventListener("unhandledrejection", function(event) {
+      const reason = event.reason;
+      report("Promise error: " + (reason && reason.message ? reason.message : String(reason)));
+    });
     const GODOT_CONFIG = {
       args: [],
       canvas: document.getElementById("canvas"),
@@ -35,7 +47,10 @@
         "Dewdrop Dynasty.wasm": 36751647
       },
       focusCanvas: true,
-      gdextensionLibs: []
+      gdextensionLibs: [],
+      onPrint: function(message) { report("Godot: " + message); },
+      onPrintError: function(message) { report("Godot error: " + message); },
+      onExit: function(code) { report("Godot exited with code " + code); }
     };
     try {
       const engine = new Engine(GODOT_CONFIG);
