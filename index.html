@@ -28,6 +28,16 @@
       console.error(message);
       status.textContent += "\\n" + String(message);
     }
+    // Surface the exact WebAssembly startup failure instead of leaving Godot waiting.
+    if (WebAssembly.instantiateStreaming) {
+      const originalInstantiateStreaming = WebAssembly.instantiateStreaming.bind(WebAssembly);
+      WebAssembly.instantiateStreaming = function(source, imports) {
+        return originalInstantiateStreaming(source, imports).catch(function(error) {
+          report("WASM instantiateStreaming failed: " + (error && error.message ? error.message : String(error)));
+          throw error;
+        });
+      };
+    }
     window.addEventListener("error", function(event) {
       report("Browser error: " + (event.message || "unknown") +
         (event.filename ? " (" + event.filename + ":" + event.lineno + ")" : ""));
