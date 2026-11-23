@@ -2,53 +2,73 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#000000">
-  <base href="https://dewdropdynastyfilepass.weight-joseph1.workers.dev/">
+  <meta name="viewport" content="width=device-width, user-scalable=no">
   <title>Dewdrop Dynasty</title>
+  <base href="https://dewdropdynastyfilepass.weight-joseph1.workers.dev/">
   <style>
-    html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; }
-    body { touch-action:none; }
-    #canvas { display:block; width:100vw; height:100vh; border:0; outline:none; background:#000; }
-    #status {
-      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-      color:#eee; font:14px Arial,sans-serif; text-align:center; padding:20px;
-      box-sizing:border-box; pointer-events:none;
+    html, body {
+      margin: 0;
+      border: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
     }
-    #status:empty { display:none; }
+    body { touch-action: none; }
+    #canvas {
+      display: block;
+      margin: 0;
+      width: 100vw;
+      height: 100vh;
+      color: white;
+      background: #000;
+      outline: none;
+    }
+    #status {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #eee;
+      background: #000;
+      font: 14px Arial, sans-serif;
+      text-align: center;
+      white-space: pre-wrap;
+      padding: 20px;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+    #status:empty { display: none; }
   </style>
   <script src="https://dewdropdynastyfilepass.weight-joseph1.workers.dev/Dewdrop%20Dynasty.js"></script>
 </head>
 <body>
-  <canvas id="canvas" tabindex="0">Your browser does not support HTML5 canvas.</canvas>
+  <canvas id="canvas" tabindex="0">
+    HTML5 canvas appears to be unsupported in this browser.
+  </canvas>
   <div id="status">Loading Dewdrop Dynasty…</div>
+
   <script>
     const status = document.getElementById("status");
-    function report(message) {
-      console.error(message);
-      status.textContent += "\\n" + String(message);
+
+    function showError(error) {
+      const message = error && error.message ? error.message : String(error);
+      console.error(error);
+      status.textContent = "Could not start Dewdrop Dynasty:\n" + message;
     }
-    // Surface the exact WebAssembly startup failure instead of leaving Godot waiting.
-    if (WebAssembly.instantiateStreaming) {
-      const originalInstantiateStreaming = WebAssembly.instantiateStreaming.bind(WebAssembly);
-      WebAssembly.instantiateStreaming = function(source, imports) {
-        return originalInstantiateStreaming(source, imports).catch(function(error) {
-          report("WASM instantiateStreaming failed: " + (error && error.message ? error.message : String(error)));
-          throw error;
-        });
-      };
-    }
+
     window.addEventListener("error", function(event) {
-      report("Browser error: " + (event.message || "unknown") +
-        (event.filename ? " (" + event.filename + ":" + event.lineno + ")" : ""));
+      showError(event.message || "Unknown browser error");
     });
+
     window.addEventListener("unhandledrejection", function(event) {
-      const reason = event.reason;
-      report("Promise error: " + (reason && reason.message ? reason.message : String(reason)));
+      showError(event.reason || "Unknown promise error");
     });
+
     const GODOT_CONFIG = {
       args: [],
-      canvas: document.getElementById("canvas"),
       canvasResizePolicy: 2,
       executable: "Dewdrop Dynasty",
       experimentalVK: false,
@@ -57,26 +77,31 @@
         "Dewdrop Dynasty.wasm": 36751647
       },
       focusCanvas: true,
-      gdextensionLibs: [],
-      onPrint: function(message) { report("Godot: " + message); },
-      onPrintError: function(message) { report("Godot error: " + message); },
-      onExit: function(code) { report("Godot exited with code " + code); }
+      gdextensionLibs: []
     };
-    try {
+
+    const missing = Engine.getMissingFeatures();
+
+    if (missing.length) {
+      status.textContent =
+        "This browser is missing required Godot features:\n" +
+        missing.join("\n");
+    } else {
       const engine = new Engine(GODOT_CONFIG);
+
       engine.startGame({
         onProgress: function(current, total) {
-          if (total > 0) status.textContent = "Loading Dewdrop Dynasty… " + Math.round((current / total) * 100) + "%";
+          if (total > 0) {
+            status.textContent =
+              "Loading Dewdrop Dynasty… " +
+              Math.round((current / total) * 100) + "%";
+          } else {
+            status.textContent = "Starting Dewdrop Dynasty…";
+          }
         }
       }).then(function() {
         status.textContent = "";
-      }).catch(function(error) {
-        console.error(error);
-        status.textContent = "Could not start Dewdrop Dynasty: " + (error && error.message ? error.message : error);
-      });
-    } catch (error) {
-      console.error(error);
-      status.textContent = "Could not load the game engine: " + (error && error.message ? error.message : error);
+      }).catch(showError);
     }
   </script>
 </body>
